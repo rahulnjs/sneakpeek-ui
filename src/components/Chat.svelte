@@ -23,11 +23,15 @@
   let showUserListOnMobile = false;
 
   onMount(async () => {
+    refreshChatList();
+    init();
+  });
+
+  function refreshChatList() {
     http.get(`/chat/room/${me}`).then((d) => {
       allRoomsData = d;
     });
-    init();
-  });
+  }
 
   async function init() {
     if (typeof Peer === "function") {
@@ -172,6 +176,7 @@
     roomId = d._id;
     const ms = await http.get(`/chat/message/${d._id}`);
     messages = ms;
+    refreshChatList();
     scrollToBottom();
   }
 
