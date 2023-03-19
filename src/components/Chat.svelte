@@ -59,14 +59,13 @@
 
       _peer.on("open", async (id) => {
         peer.set(_peer);
-        const d = await http.put(`/me/${me}`, {
+        await http.put(`/me/${me}`, {
           id: _peer.id,
           now: Date.now(),
         });
         heartbeatTimer = setInterval(heartbeat, 2500);
-        console.log(d.id);
 
-        if (you && me !== "@rahul") {
+        if (you) {
           connectToSlave();
         }
       });
@@ -216,7 +215,7 @@
   </div>
   <div class="main-app">
     <div class="left-side gen-side">
-      <div class="users">
+      <div class="users scrollable">
         {#if allRoomsData && allRoomsData.length > 0}
           {#each allRoomsData as room}
             <div
@@ -277,7 +276,7 @@
             <i class="fa-solid fa-ellipsis-vertical" />
           </div>
         </div>
-        <div class="messages" id="messages">
+        <div class="messages scrollable" id="messages">
           {#each messages as msg}
             <div class="-msg {msg.by === me ? 'outgoing' : 'incoming'}">
               <div class="message-wrapper">
@@ -342,7 +341,7 @@
       >
         <i class="fa-solid fa-xmark" />
       </div>
-      <div class="users">
+      <div class="users scrollable">
         {#if allRoomsData && allRoomsData.length > 0}
           {#each allRoomsData as room}
             <div
@@ -409,6 +408,7 @@
   .right-side .messages {
     height: calc(100vh - 288px);
     overflow-y: auto;
+    padding-right: 10px;
   }
 
   .right-side .messages .-msg {
