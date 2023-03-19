@@ -26,6 +26,10 @@
     http.get(`/chat/room/${me}`).then((d) => {
       allRoomsData = d;
     });
+    init();
+  });
+
+  async function init() {
     if (typeof Peer === "function") {
       const _peer = new Peer();
 
@@ -63,13 +67,17 @@
         }
       });
     }
-  });
+  }
 
   async function heartbeat() {
-    await http.put(`/me/${me}`, {
-      id: $peer.id,
-      now: Date.now(),
-    });
+    if ($peer.id) {
+      await http.put(`/me/${me}`, {
+        id: $peer.id,
+        now: Date.now(),
+      });
+    } else {
+      init();
+    }
   }
 
   async function connectToSlave() {
@@ -106,8 +114,7 @@
 
   function handleMesage(data) {
     const msg = JSON.parse(data);
-    var objDiv = document.getElementById("messages");
-    objDiv.scrollTop = objDiv.scrollHeight + 150;
+    scrollToBottom();
     if (msg.type === "Sent") {
       messages = [...messages, JSON.parse(data)];
       msgBeingTyped = "";
@@ -115,6 +122,13 @@
       msgBeingTyped = msg.body;
       lastTypingSignalAt = Date.now();
     }
+  }
+
+  function scrollToBottom() {
+    setTimeout(() => {
+      var objDiv = document.getElementById("messages");
+      objDiv.scrollTop = objDiv.scrollHeight + 150;
+    }, 100);
   }
 
   setInterval(checkIfTyping, 400);
@@ -158,6 +172,7 @@
     roomId = d._id;
     const ms = await http.get(`/chat/message/${d._id}`);
     messages = ms;
+    scrollToBottom();
   }
 
   const getOtherPeersName = (room) => (room.p1 === me ? room.p2 : room.p1);
