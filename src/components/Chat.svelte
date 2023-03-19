@@ -21,6 +21,7 @@
   let heartbeatTimer;
   let retryConnectToSlaveTimer;
   let showUserListOnMobile = false;
+  let amIReady = false;
 
   onMount(async () => {
     refreshChatList();
@@ -35,9 +36,17 @@
 
   async function init() {
     if (typeof Peer === "function") {
+      if ($peer) {
+        return;
+      }
       const _peer = new Peer();
-
+      peer.set(_peer);
+      if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer);
+      }
+      heartbeatTimer = setInterval(heartbeat, 2500);
       _peer.on("connection", (conn) => {
+        console.log("called peer-connection");
         tryingToConnect = true;
         conn.on("open", async function () {
           tryingToConnect = false;
@@ -58,12 +67,7 @@
       });
 
       _peer.on("open", async (id) => {
-        peer.set(_peer);
-        await http.put(`/me/${me}`, {
-          id: _peer.id,
-          now: Date.now(),
-        });
-        heartbeatTimer = setInterval(heartbeat, 2500);
+        amIReady = true;
 
         if (you) {
           connectToSlave();
@@ -73,7 +77,7 @@
   }
 
   async function heartbeat() {
-    if ($peer.id) {
+    if ($peer && $peer.id && amIReady) {
       await http.put(`/me/${me}`, {
         id: $peer.id,
         now: Date.now(),
@@ -86,6 +90,7 @@
   async function connectToSlave() {
     tryingToConnect = true;
     const d = await http.get(`/you/${you}`);
+    console.log(d);
     if (d && d.id) {
       const conn = $peer.connect(d.id, {
         reliable: true,
@@ -119,7 +124,9 @@
     const msg = JSON.parse(data);
     scrollToBottom();
     if (msg.type === "Sent") {
-      messages = [...messages, JSON.parse(data)];
+      if (msg.body) {
+        messages = [...messages, msg];
+      }
       msgBeingTyped = "";
     } else {
       msgBeingTyped = msg.body;
@@ -147,7 +154,7 @@
   function send(e) {
     const isEnter = e && e.key === "Enter";
     const msgPayload = {
-      body: userMsg,
+      body: userMsg.trim(),
       at: Date.now(),
       by: me,
       type: !isEnter ? "Typing" : "Sent",
@@ -158,7 +165,9 @@
       if (isEnter) {
         messages = [...messages, msgPayload];
         userMsg = "";
-        http.post(`/chat/message`, msgPayload).then((r) => r);
+        if (msgPayload.body) {
+          http.post(`/chat/message`, msgPayload).then((r) => r);
+        }
       }
     } finally {
     }
@@ -171,12 +180,14 @@
   }
 
   async function saveRoom() {
-    const d = await http.post(`/chat/room`, { p1: me, p2: you });
-    roomId = d._id;
-    const ms = await http.get(`/chat/message/${d._id}`);
-    messages = ms;
-    refreshChatList();
-    scrollToBottom();
+    if (you) {
+      const d = await http.post(`/chat/room`, { p1: me, p2: you });
+      roomId = d._id;
+      const ms = await http.get(`/chat/message/${d._id}`);
+      messages = ms;
+      refreshChatList();
+      scrollToBottom();
+    }
   }
 
   const getOtherPeersName = (room) => (room.p1 === me ? room.p2 : room.p1);
@@ -206,7 +217,7 @@
           <input placeholder="Enter @username" bind:value={targetUser} />
         </div>
         <div>
-          <button on:click={connect}
+          <button on:click={connect} disabled={!amIReady}
             ><i class="fa-solid fa-plug" /> Connect</button
           >
         </div>
@@ -252,7 +263,7 @@
         {/if}
       </div>
     </div>
-    {#if you}
+    {#if you && amIReady}
       <div class="right-side gen-side">
         <div class="user-header">
           <div class="user-info">
@@ -318,8 +329,18 @@
           </div>
         </div>
       </div>
-    {:else if tryingToConnect}
-      <div class="no-chat-window">Connecting</div>
+    {:else if tryingToConnect || !amIReady}
+      <div class="no-chat-window">
+        <div class="cloader">
+          <div class="lds-ring">
+            <div />
+            <div />
+            <div />
+            <div />
+          </div>
+          <div class="txt">Connecting...</div>
+        </div>
+      </div>
     {:else}
       <div class="no-chat-window">
         <div class="no-chat-window--icon">
@@ -640,6 +661,17 @@
     margin-top: 10px;
   }
 
+  .cloader {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .cloader .txt {
+    margin-top: 16px;
+    font-size: 1.5rem;
+  }
+
   .empty-user-list,
   .no-chat-window {
     display: flex;
@@ -665,6 +697,11 @@
   .no-chat-window--icon {
     font-size: 5rem;
     color: #ededed;
+  }
+
+  button:disabled {
+    background-color: #c0c0c0;
+    pointer-events: none;
   }
 
   @media only screen and (max-width: 600px) {
@@ -705,6 +742,46 @@
       top: 6px;
       right: 9px;
       cursor: pointer;
+    }
+
+    .empty-user-list {
+      height: 100%;
+    }
+  }
+
+  .lds-ring {
+    display: inline-block;
+    position: relative;
+    width: 36px;
+    height: 36px;
+  }
+  .lds-ring div {
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    margin: 8px;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    border-color: #d6d6d6 transparent transparent transparent;
+  }
+  .lds-ring div:nth-child(1) {
+    animation-delay: -0.45s;
+  }
+  .lds-ring div:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+  .lds-ring div:nth-child(3) {
+    animation-delay: -0.15s;
+  }
+  @keyframes lds-ring {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
     }
   }
 </style>
