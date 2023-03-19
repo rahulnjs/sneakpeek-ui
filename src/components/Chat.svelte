@@ -193,9 +193,11 @@
   const getOtherPeersName = (room) => (room.p1 === me ? room.p2 : room.p1);
 
   function connectToPeer(user) {
-    you = user;
-    messages = [];
-    connectToSlave();
+    if (amIReady) {
+      you = user;
+      messages = [];
+      connectToSlave();
+    }
   }
 </script>
 
