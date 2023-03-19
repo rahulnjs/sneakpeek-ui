@@ -20,7 +20,7 @@
       <div class="sneakpeek-logo">
         <img src="/sneakpeek.png" alt="Logo" />
       </div>
-      <div class="hero-text">Welcome to Sneakpeek</div>
+      <div class="hero-text">Welcome to <b>Sneakpeek</b></div>
       <div class="sub-hero-text">
         A realest time chat application, that allows you to see what the other
         user is typing as they are typing

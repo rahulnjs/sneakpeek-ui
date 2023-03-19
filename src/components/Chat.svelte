@@ -73,9 +73,9 @@
   }
 
   async function connectToSlave() {
+    tryingToConnect = true;
     const d = await http.get(`/you/${you}`);
     if (d && d.id) {
-      tryingToConnect = true;
       const conn = $peer.connect(d.id, {
         reliable: true,
       });
@@ -96,13 +96,18 @@
       connection.set(conn);
     } else {
       //user not online keep trying or fallback to ws
-      console.log("User not online");
+      tryingToConnect = false;
+      console.log("User not online"); //keep trying
+      setTimeout(connectToSlave, 3000);
+      connected = false;
       retryConnectToSlaveTimer = setTimeout(connectToSlave, 3000);
     }
   }
 
   function handleMesage(data) {
     const msg = JSON.parse(data);
+    var objDiv = document.getElementById("messages");
+    objDiv.scrollTop = objDiv.scrollHeight + 150;
     if (msg.type === "Sent") {
       messages = [...messages, JSON.parse(data)];
       msgBeingTyped = "";
@@ -144,26 +149,36 @@
 
   function connect() {
     you = targetUser;
+    messages = [];
     connectToSlave();
   }
 
   async function saveRoom() {
     const d = await http.post(`/chat/room`, { p1: me, p2: you });
     roomId = d._id;
+    const ms = await http.get(`/chat/message/${d._id}`);
+    messages = ms;
   }
 
   const getOtherPeersName = (room) => (room.p1 === me ? room.p2 : room.p1);
 
   function connectToPeer(user) {
     you = user;
+    messages = [];
     connectToSlave();
   }
 </script>
 
 <div>
   <div class="app-header">
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div class="logo">
-      <img src="/sneakpeek.png" alt="Logo" />
+      <img
+        src="/sneakpeek.png"
+        alt="Logo"
+        on:click={() => (showUserListOnMobile = true)}
+        style="cursor: pointer"
+      />
       <span id="sneakpeek-text">Sneakpeek</span>
     </div>
     <div class="header-actions">
@@ -238,14 +253,11 @@
             </div>
           </div>
           <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <div
-            class="user-action"
-            on:click={() => (showUserListOnMobile = true)}
-          >
+          <div class="user-action">
             <i class="fa-solid fa-ellipsis-vertical" />
           </div>
         </div>
-        <div class="messages">
+        <div class="messages" id="messages">
           {#each messages as msg}
             <div class="-msg {msg.by === me ? 'outgoing' : 'incoming'}">
               <div class="message-wrapper">
