@@ -1,5 +1,5 @@
 const BASE_URL =
-    window.location.protocol === 'http' ?
+    window.location.protocol === 'http:' ?
         'http://localhost:3993/api' :
         'https://chat.rahulnjs.com/api';
 

@@ -3,6 +3,7 @@
   import { peer, connection } from "../store";
   import http from "../http";
   import moment from "moment";
+  import { slide } from "svelte/transition";
 
   export let me;
   let you;
@@ -17,6 +18,9 @@
   let roomId;
   let allRoomsData;
   let tryingToConnect = false;
+  let heartbeatTimer;
+  let retryConnectToSlaveTimer;
+  let showUserListOnMobile = false;
 
   onMount(async () => {
     http.get(`/chat/room/${me}`).then((d) => {
@@ -29,7 +33,7 @@
         tryingToConnect = true;
         conn.on("open", async function () {
           tryingToConnect = false;
-          console.log("connected as slave", conn);
+          console.log("connected as slave");
           const connectionFrom = conn.peer;
           const d = await http.get(`/id/${connectionFrom}`);
           you = d.you;
@@ -119,7 +123,6 @@
   }
 
   function send(e) {
-    //console.log(e);
     const isEnter = e && e.key === "Enter";
     const msgPayload = {
       body: userMsg,
@@ -147,7 +150,6 @@
   async function saveRoom() {
     const d = await http.post(`/chat/room`, { p1: me, p2: you });
     roomId = d._id;
-    console.log(d);
   }
 
   const getOtherPeersName = (room) => (room.p1 === me ? room.p2 : room.p1);
@@ -162,7 +164,7 @@
   <div class="app-header">
     <div class="logo">
       <img src="/sneakpeek.png" alt="Logo" />
-      Sneakpeek
+      <span id="sneakpeek-text">Sneakpeek</span>
     </div>
     <div class="header-actions">
       <div class="chat-connector">
@@ -235,7 +237,11 @@
               </div>
             </div>
           </div>
-          <div class="user-action">
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <div
+            class="user-action"
+            on:click={() => (showUserListOnMobile = true)}
+          >
             <i class="fa-solid fa-ellipsis-vertical" />
           </div>
         </div>
@@ -289,12 +295,59 @@
           <i class="fa-solid fa-message" />
         </div>
         <div class="no-chat-window--desc">
-          Select a chat or <b><i class="fa-solid fa-plug" /> connect</b> to a new
+          Select a chat or <b><i class="fa-solid fa-plug" /> Connect</b> to a new
           user
         </div>
       </div>
     {/if}
   </div>
+  {#if showUserListOnMobile}
+    <div class="user-list-mobile" transition:slide>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div
+        class="user-list-mobile--close-btn"
+        on:click={() => (showUserListOnMobile = false)}
+      >
+        <i class="fa-solid fa-xmark" />
+      </div>
+      <div class="users">
+        {#if allRoomsData && allRoomsData.length > 0}
+          {#each allRoomsData as room}
+            <div
+              class="user-info"
+              on:click={() => connectToPeer(getOtherPeersName(room))}
+              on:keyup={() => {}}
+            >
+              <div class="user-ico">
+                <i class="fa-regular fa-user" />
+              </div>
+              <div class="user-msg">
+                <div class="username">{getOtherPeersName(room)}</div>
+                <div class="msgbody">
+                  {#if room.lastMsg}
+                    {#if room.lastMsg.by === me}
+                      You:
+                    {/if}
+                    {room.lastMsg.body}
+                  {/if}
+                </div>
+              </div>
+            </div>
+          {/each}
+        {:else}
+          <div class="empty-user-list">
+            <div class="empty-user-list--icon">
+              <i class="fa-solid fa-users-line" />
+            </div>
+
+            <div class="empty-user-list--desc">
+              Your chats will appear here.
+            </div>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -303,8 +356,9 @@
     display: grid;
     gap: 20px;
     grid-template-columns: 1fr 3fr;
-    height: calc(100vh - 200px);
+    height: calc(100vh - 82px);
     box-sizing: border-box;
+    position: relative;
   }
 
   .gen-side {
@@ -316,10 +370,12 @@
 
   .left-side {
     padding: 0px 16px !important;
+    overflow: auto;
+    height: calc(100vh - 130px);
   }
 
   .right-side .messages {
-    height: 450px;
+    height: calc(100vh - 288px);
     overflow-y: auto;
   }
 
@@ -545,6 +601,7 @@
     border-radius: 24px;
     padding-left: 20px;
     padding-right: 20px;
+    min-width: 125px;
   }
 
   .header-actions {
@@ -554,11 +611,12 @@
   .empty-user-list,
   .no-chat-window {
     display: flex;
-    min-height: 450px;
+    height: calc(100vh - 150px);
     align-items: center;
     flex-direction: column;
     justify-content: center;
     color: #d6d6d6;
+    text-align: justify;
   }
 
   .empty-user-list--icon {
@@ -575,5 +633,46 @@
   .no-chat-window--icon {
     font-size: 5rem;
     color: #ededed;
+  }
+
+  @media only screen and (max-width: 600px) {
+    #sneakpeek-text {
+      display: none;
+    }
+
+    .left-side {
+      position: absolute;
+      display: none;
+    }
+
+    .main-app {
+      grid-template-columns: 4fr;
+    }
+
+    .app-header .logo {
+      padding-right: 15px;
+    }
+
+    .user-list-mobile {
+      position: fixed;
+      bottom: 0;
+      background-color: #fff;
+      width: 100vw;
+      padding: 16px;
+      border-top: 1px solid whitesmoke;
+      box-sizing: border-box;
+    }
+
+    .user-list-mobile .users {
+      height: calc(100vh - 400px);
+      overflow: auto;
+    }
+
+    .user-list-mobile--close-btn {
+      position: absolute;
+      top: 6px;
+      right: 9px;
+      cursor: pointer;
+    }
   }
 </style>
