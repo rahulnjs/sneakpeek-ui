@@ -23,7 +23,7 @@
       <div class="hero-text">Welcome to <b>Sneakpeek</b></div>
       <div class="sub-hero-text">
         A realest time chat application, that allows you to see what the other
-        user is typing as they are typing
+        user is typing as they are typing.
       </div>
       <div class="header-actions" style="margin-top: 25px;">
         <div class="chat-connector">
@@ -51,7 +51,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    padding: 16px;
+    padding: 24px;
   }
 
   .sneakpeek-logo img {
