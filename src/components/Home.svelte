@@ -50,7 +50,7 @@
         * <b>Sneakpeek</b> alpha is open for some selective users only.
       </div>
     </div>
-    <div class="disclaimer" style="position: fixed; bottom: 10px;">
+    <div class="disclaimer branding-footer">
       Developed with ♡ by <a
         href="https://github.com/rahulnjs"
         style="color: gray;"
@@ -75,10 +75,14 @@
   }
 
   .hero-text {
-    font-size: 4rem;
+    font-size: 3rem;
     color: #a1a1a1;
     letter-spacing: -4px;
     line-height: 60px;
+  }
+
+  .hero-text b {
+    font-size: 3.5rem;
   }
 
   .sub-hero-text {
@@ -125,5 +129,15 @@
   .disclaimer {
     margin-top: 25px;
     color: #cfcfcf;
+  }
+
+  .branding-footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background-color: #f5f7fb;
+    padding-bottom: 10px;
+    padding-top: 10px;
   }
 </style>
