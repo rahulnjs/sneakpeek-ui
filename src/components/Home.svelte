@@ -50,6 +50,13 @@
         * <b>Sneakpeek</b> alpha is open for some selective users only.
       </div>
     </div>
+    <div class="disclaimer" style="position: fixed; bottom: 10px;">
+      Developed with ♡ by <a
+        href="https://github.com/rahulnjs"
+        style="color: gray;"
+        target="_blank">Rahul Sharma</a
+      >
+    </div>
   </div>
 </main>
 
