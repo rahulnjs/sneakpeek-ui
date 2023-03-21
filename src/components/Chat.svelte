@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { peer, connection } from "../store";
   import http from "../http";
   import moment from "moment";
@@ -28,6 +28,13 @@
     init();
   });
 
+  onDestroy(() => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      $peer.destroy();
+    }
+  });
+
   function refreshChatList() {
     http.get(`/chat/room/${me}`).then((d) => {
       allRoomsData = d;
@@ -42,9 +49,12 @@
       const _peer = new Peer();
       peer.set(_peer);
       if (heartbeatTimer) {
-        clearTimeout(heartbeatTimer);
+        clearInterval(heartbeatTimer);
       }
       heartbeatTimer = setInterval(heartbeat, 2500);
+      _peer.on("close", () => {
+        connected = false;
+      });
       _peer.on("connection", (conn) => {
         console.log("called peer-connection");
         tryingToConnect = true;
@@ -90,7 +100,6 @@
   async function connectToSlave() {
     tryingToConnect = true;
     const d = await http.get(`/you/${you}`);
-    console.log(d);
     if (d && d.id) {
       const conn = $peer.connect(d.id, {
         reliable: true,
@@ -114,7 +123,6 @@
       //user not online keep trying or fallback to ws
       tryingToConnect = false;
       console.log("User not online"); //keep trying
-      setTimeout(connectToSlave, 3000);
       connected = false;
       retryConnectToSlaveTimer = setTimeout(connectToSlave, 3000);
     }
@@ -165,6 +173,7 @@
       if (isEnter) {
         messages = [...messages, msgPayload];
         userMsg = "";
+        scrollToBottom();
         if (msgPayload.body) {
           http.post(`/chat/message`, msgPayload).then((r) => r);
         }
