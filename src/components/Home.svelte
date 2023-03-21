@@ -63,7 +63,7 @@
 <style>
   .app {
     display: flex;
-    height: 100vh;
+    height: 90vh;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
