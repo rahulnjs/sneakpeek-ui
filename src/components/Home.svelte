@@ -10,6 +10,10 @@
     if (d.valid) {
       navigate(`/${username}`);
     } else {
+      Toastify({
+        text: `User ${username} is not authorized.`,
+        className: "warning",
+      }).showToast();
     }
   }
 </script>
@@ -28,7 +32,12 @@
       <div class="header-actions" style="margin-top: 25px;">
         <div class="chat-connector">
           <div>
-            <input placeholder="Your @username" bind:value={username} />
+            <input
+              placeholder="Your @username"
+              bind:value={username}
+              on:keyup={(e) =>
+                e.key === "Enter" && username.length > 0 && enter()}
+            />
           </div>
           <div>
             <button on:click={enter}

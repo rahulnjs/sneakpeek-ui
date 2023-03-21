@@ -182,10 +182,19 @@
     }
   }
 
-  function connect() {
-    you = targetUser;
-    messages = [];
-    connectToSlave();
+  async function connect() {
+    const d = await http.get(`/user/${targetUser}`);
+    if (d.valid) {
+      you = targetUser;
+      messages = [];
+      saveRoom();
+      connectToSlave();
+    } else {
+      Toastify({
+        text: `User ${targetUser} is not valid.`,
+        className: "warning",
+      }).showToast();
+    }
   }
 
   async function saveRoom() {
@@ -225,7 +234,11 @@
     <div class="header-actions">
       <div class="chat-connector">
         <div>
-          <input placeholder="Enter @username" bind:value={targetUser} />
+          <input
+            placeholder="Enter @username"
+            bind:value={targetUser}
+            on:keyup={(e) => e.key === "Enter" && amIReady && connect()}
+          />
         </div>
         <div>
           <button on:click={connect} disabled={!amIReady}
@@ -350,6 +363,12 @@
             <div />
           </div>
           <div class="txt">Connecting...</div>
+        </div>
+        <div style="margin-top: 25px;">
+          Please have patience while we register you as a peer.
+        </div>
+        <div style="margin-top: 15px;">
+          We don't have any control over the P2P servers, it may take a while.
         </div>
       </div>
     {:else}
